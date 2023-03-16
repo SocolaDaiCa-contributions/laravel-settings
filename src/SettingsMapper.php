@@ -28,7 +28,7 @@ class SettingsMapper
         return array_key_exists($settingsClass, $this->configs);
     }
 
-    public function load(string $settingsClass): Collection
+    public function load(string $settingsClass, $defaultAttributes = []): Collection
     {
         $config = $this->getConfig($settingsClass);
 
@@ -36,6 +36,8 @@ class SettingsMapper
             $settingsClass,
             $config->getReflectedProperties()->keys()
         );
+
+        $properties = collect($defaultAttributes)->merge($properties);
 
         event(new LoadingSettings($settingsClass, $properties));
 
@@ -123,3 +125,4 @@ class SettingsMapper
         }
     }
 }
+

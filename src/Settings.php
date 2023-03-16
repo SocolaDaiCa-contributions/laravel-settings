@@ -14,6 +14,7 @@ use Spatie\LaravelSettings\Events\SettingsLoaded;
 use Spatie\LaravelSettings\Events\SettingsSaved;
 use Spatie\LaravelSettings\SettingsRepositories\SettingsRepository;
 use Spatie\LaravelSettings\Support\Crypto;
+use UnitEnum;
 
 abstract class Settings implements Arrayable, Jsonable, Responsable
 {
@@ -27,7 +28,10 @@ abstract class Settings implements Arrayable, Jsonable, Responsable
 
     protected ?Collection $originalValues = null;
 
-    abstract public static function group(): string;
+    // abstract public static function group(): string;
+    public static function group(): string {
+        return static::class;
+    }
 
     public static function repository(): ?string
     {
@@ -96,6 +100,10 @@ abstract class Settings implements Arrayable, Jsonable, Responsable
     {
         $this->loadValues();
 
+        if ($value instanceof UnitEnum) {
+            $value = $value->value;
+        }
+
         $this->{$name} = $value;
     }
 
@@ -161,6 +169,10 @@ abstract class Settings implements Arrayable, Jsonable, Responsable
     public function fill($properties): self
     {
         foreach ($properties as $name => $payload) {
+            if (property_exists($this, $name) === false) {
+                continue;
+            }
+
             $this->{$name} = $payload;
         }
 
@@ -181,6 +193,16 @@ abstract class Settings implements Arrayable, Jsonable, Responsable
         event(new SettingsSaved($this));
 
         return $this;
+    }
+
+    public function update($properties)
+    {
+        return $this->fill($properties)->save();
+    }
+
+    public function reset(): self
+    {
+        return $this->update($this->default());
     }
 
     public function lock(string ...$properties)
@@ -263,7 +285,7 @@ abstract class Settings implements Arrayable, Jsonable, Responsable
             return $this;
         }
 
-        $values ??= $this->mapper->load(static::class);
+        $values ??= $this->mapper->load(static::class, $this->default());
 
         $this->loaded = true;
 
@@ -287,4 +309,6 @@ abstract class Settings implements Arrayable, Jsonable, Responsable
 
         return $this;
     }
+
+    abstract protected function default(): array;
 }
